@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import os
 import base64
-from dotenv import load_dotenv
 import logging
 from deep_translator import GoogleTranslator
 from gtts import gTTS
@@ -10,18 +9,24 @@ from io import BytesIO
 from PIL import Image
 import hashlib
 
-# Load environment variables
-load_dotenv()
+# Attempt to load environment variables for local development
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # python-dotenv not installed, rely on Streamlit secrets or system environment
+    pass
+
+# Mistral API Key and Endpoint
+# Use st.secrets for Streamlit Cloud, fall back to os.getenv for local
+MISTRAL_API_KEY = st.secrets.get("MISTRAL_API_KEY", os.getenv("MISTRAL_API_KEY"))
+if not MISTRAL_API_KEY:
+    raise ValueError("MISTRAL_API_KEY not found. Please set it in Streamlit Secrets or a .env file for local development.")
+
+MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
 # Set NO_PROXY to bypass proxies for Mistral API
 os.environ["NO_PROXY"] = "api.mistral.ai"
-
-# Mistral API Key and Endpoint
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-if not MISTRAL_API_KEY:
-    raise ValueError("MISTRAL_API_KEY not found in environment variables. Please set it in .env file.")
-
-MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
