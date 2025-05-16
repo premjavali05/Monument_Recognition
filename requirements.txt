@@ -1,0 +1,6 @@
+streamlit>=1.38.0
+requests>=2.32.3
+python-dotenv>=1.0.1
+deep-translator>=1.11.4
+gtts>=2.5.3
+pillow>=10.4.0
