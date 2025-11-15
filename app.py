@@ -1,56 +1,50 @@
-import streamlit as st 
+import streamlit as st
 import requests
 import os
 import base64
+from dotenv import load_dotenv
 import logging
 from deep_translator import GoogleTranslator
+from gtts import gTTS
 from io import BytesIO
 from PIL import Image
 import hashlib
 
-# -------------------------------------------------------------------------------------
-# FIX: Disable proxies so GoogleTranslator works properly on Streamlit Cloud
-# -------------------------------------------------------------------------------------
-os.environ['HTTP_PROXY'] = ''
-os.environ['HTTPS_PROXY'] = ''
-os.environ['ALL_PROXY'] = ''
+# Load environment variables
+load_dotenv()
 
-# Load environment for local development
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except:
-    pass
+# Set NO_PROXY to bypass proxies for Mistral API
+os.environ["NO_PROXY"] = "api.mistral.ai"
 
-# Mistral API Key
-MISTRAL_API_KEY = st.secrets.get("MISTRAL_API_KEY", os.getenv("MISTRAL_API_KEY"))
+# Mistral API Key and Endpoint
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 if not MISTRAL_API_KEY:
-    raise ValueError("MISTRAL_API_KEY missing.")
+    raise ValueError("MISTRAL_API_KEY not found in environment variables. Please set it in .env file.")
 
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
-os.environ["NO_PROXY"] = "api.mistral.ai"
-
-# Logging
+# Logging setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Constants
+# Constants for image processing
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-MAX_FILE_SIZE = 5 * 1024 * 1024
-MAX_IMAGE_DIMENSION = 800
-
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+MAX_IMAGE_DIMENSION = 800  # Max width/height for resizing
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
 def compress_image(image_bytes):
+    """Compress and resize image to reduce payload size."""
     try:
         img = Image.open(BytesIO(image_bytes))
         img_format = img.format if img.format in ['JPEG', 'PNG'] else 'JPEG'
+
+        # Resize while maintaining aspect ratio
         img.thumbnail((MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION), Image.Resampling.LANCZOS)
 
+        # Save to BytesIO with compression
         output = BytesIO()
         if img_format == 'JPEG':
             img.save(output, format='JPEG', quality=85, optimize=True)
@@ -59,52 +53,72 @@ def compress_image(image_bytes):
         return output.getvalue()
     except Exception as e:
         logger.error("Image compression error: %s", e)
-        return image_bytes
-
+        return image_bytes  # Fallback to original
 
 @st.cache_data(show_spinner=False)
-def process_monument_name(_hash, name):
+def process_monument_name(_monument_hash, monument_name):
     try:
-        headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}", "Content-Type": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {MISTRAL_API_KEY}",
+            "Content-Type": "application/json"
+        }
         payload = {
             "model": "pixtral-large-latest",
             "messages": [
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": f"Explain the historical background of {name} in plain text. No markdown."}
+                        {
+                            "type": "text",
+                            "text": f"Provide in depth historical information about {monument_name}. Provide the response in plain text without any markdown formatting (e.g., no asterisks, hashes, or other symbols)."
+                        }
                     ]
                 }
             ]
         }
+
         response = requests.post(MISTRAL_URL, json=payload, headers=headers, proxies={"http": "", "https": ""})
         response.raise_for_status()
-
         result = response.json()
-        info = result.get("choices", [{}])[0].get("message", {}).get("content", "No info found.")
+        info = result.get("choices", [{}])[0].get("message", {}).get("content", "Sorry, no details found for this monument.")
+        logger.info("API Response for name: %s", result)
         return info
     except Exception as e:
-        return f"Error: {e}"
-
+        logger.error("Error during name processing: %s", e)
+        return f"Error: {str(e)}"
 
 @st.cache_data(show_spinner=False)
-def process_image(_hash, image_bytes):
+def process_image(_image_hash, image_bytes):
     try:
+        # Compress image
         compressed_bytes = compress_image(image_bytes)
         if len(compressed_bytes) > MAX_FILE_SIZE:
-            return "Error: File too large."
+            return f"Error: Compressed file too large. Max size is 5MB"
 
-        image_base64 = base64.b64encode(compressed_bytes).decode("utf-8")
+        # Convert to base64
+        image_base64 = base64.b64encode(compressed_bytes).decode('utf-8')
 
-        headers = {"Authorization": f"Bearer {MISTRAL_API_KEY}", "Content-Type": "application/json"}
+        # Mistral API request
+        headers = {
+            "Authorization": f"Bearer {MISTRAL_API_KEY}",
+            "Content-Type": "application/json"
+        }
         payload = {
             "model": "pixtral-large-latest",
             "messages": [
                 {
                     "role": "user",
                     "content": [
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}},
-                        {"type": "text", "text": "Identify this monument and provide detailed history in plain text."}
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{image_base64}"
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": "What monument is this? Please provide in depth historical information. Provide the response in plain text without any markdown formatting (e.g., no asterisks, hashes, or other symbols)."
+                        }
                     ]
                 }
             ]
@@ -112,116 +126,140 @@ def process_image(_hash, image_bytes):
 
         response = requests.post(MISTRAL_URL, json=payload, headers=headers, proxies={"http": "", "https": ""})
         response.raise_for_status()
-
         result = response.json()
-        info = result.get("choices", [{}])[0].get("message", {}).get("content", "No info found.")
+        info = result.get("choices", [{}])[0].get("message", {}).get("content", "Sorry, no details found in the response.")
+        logger.info("API Response for image: %s", result)
         return info
-
     except Exception as e:
-        return f"Error: {e}"
+        logger.error("Error during image processing: %s", e)
+        return f"Error: {str(e)}"
 
-
-# -------------------------------------------------------------------------------------
-# NEW: LibreTTS Text-to-Speech (FREE, CLOUD SAFE)
-# -------------------------------------------------------------------------------------
-def generate_speech(_hash, text, lang='kn'):
-    try:
-        tts_url = "https://libretranslate.de/tts"
-        payload = {"q": text, "target": lang}
-
-        response = requests.post(tts_url, data=payload)
-        response.raise_for_status()
-
-        audio_bytes = BytesIO(response.content)
-        return audio_bytes
-    except Exception as e:
-        logger.error("LibreTTS error: %s", e)
-        return None
-
-
-# -------------------------------------------------------------------------------------
-# Translation (deep_translator)
-# -------------------------------------------------------------------------------------
 @st.cache_data(show_spinner=False)
 def translate_to_kannada(text):
     try:
-        tr = GoogleTranslator(source='en', target='kn')
-        return tr.translate(text)
+        translator = GoogleTranslator(source='en', target='kn')
+        translated = translator.translate(text)
+        if not translated:
+            return "Translation failed: No output from translator."
+        return translated
     except Exception as e:
-        return f"Translation error: {e}"
+        logger.error("Translation error: %s", e)
+        return f"Translation failed: {str(e)}"
 
+@st.cache_data(show_spinner=False)
+def generate_speech(_text_hash, text, lang='kn'):
+    try:
+        mp3_fp = BytesIO()
+        tts = gTTS(text=text, lang=lang)
+        tts.write_to_fp(mp3_fp)
+        mp3_fp.seek(0)
+        return mp3_fp
+    except Exception as e:
+        logger.error("gTTS error for lang %s: %s", lang, e)
+        return None
 
-# -------------------------------------------------------------------------------------
-# STREAMLIT UI
-# -------------------------------------------------------------------------------------
-st.title("Monument Information & Narration")
+# Streamlit app
+st.title("Monument Information and Narration")
 
-input_method = st.radio("Choose Input Method", ("Enter Monument Name", "Upload Monument Image"))
+# Input method selection
+st.header("Choose Input Method")
+input_method = st.radio("Select how you want to provide monument information:", ("Enter Monument Name", "Upload Monument Image"))
 
-if "monument_info" not in st.session_state:
-    st.session_state.monument_info = None
-    st.session_state.translated_text = None
-    st.session_state.audio_kn = None
-    st.session_state.audio_en = None
-    st.session_state.last_method = None
+# Initialize session state
+if 'monument_info' not in st.session_state:
+    st.session_state['monument_info'] = None
+    st.session_state['translated_text'] = None
+    st.session_state['audio_kannada'] = None
+    st.session_state['audio_english'] = None
+    st.session_state['last_input_method'] = None
 
-if st.session_state.last_method != input_method:
-    st.session_state.monument_info = None
-    st.session_state.translated_text = None
-    st.session_state.audio_kn = None
-    st.session_state.audio_en = None
-    st.session_state.last_method = input_method
+# Clear previous output if input method changes
+if st.session_state['last_input_method'] != input_method:
+    st.session_state['monument_info'] = None
+    st.session_state['translated_text'] = None
+    st.session_state['audio_kannada'] = None
+    st.session_state['audio_english'] = None
+    st.session_state['last_input_method'] = input_method
 
-
-# NAME INPUT
 if input_method == "Enter Monument Name":
-    name = st.text_input("Enter monument name")
-    if name and st.button("Get Monument Info"):
-        with st.spinner("Fetching information..."):
-            _hash = hashlib.sha256(name.encode()).hexdigest()
-            st.session_state.monument_info = process_monument_name(_hash, name)
+    st.header("Enter Monument Name")
+    monument_name = st.text_input("Enter the name of the monument")
+    
+    if monument_name:
+        if st.button("Get Monument Information"):
+            with st.spinner("Fetching monument information..."):
+                # Compute monument name hash for caching
+                monument_hash = hashlib.sha256(monument_name.encode()).hexdigest()
+                result = process_monument_name(monument_hash, monument_name)
+                st.session_state['monument_info'] = result
+                st.session_state['translated_text'] = None
+                st.session_state['audio_kannada'] = None
+                st.session_state['audio_english'] = None
+                st.session_state['last_input_method'] = input_method
 
+elif input_method == "Upload Monument Image":
+    st.header("Upload Monument Image")
+    uploaded_image = st.file_uploader("Choose an image (PNG, JPG, JPEG)", type=['png', 'jpg', 'jpeg'])
+    
+    if uploaded_image is not None:
+        if not allowed_file(uploaded_image.name):
+            st.error("Invalid file type. Only PNG, JPG, JPEG allowed.")
+        else:
+            st.image(uploaded_image, caption="Uploaded Image", use_container_width=True)
+            if st.button("Analyze Monument"):
+                with st.spinner("Analyzing image..."):
+                    image_bytes = uploaded_image.read()
+                    # Compute image hash for caching
+                    image_hash = hashlib.sha256(image_bytes).hexdigest()
+                    result = process_image(image_hash, image_bytes)
+                    st.session_state['monument_info'] = result
+                    st.session_state['translated_text'] = None
+                    st.session_state['audio_kannada'] = None
+                    st.session_state['audio_english'] = None
+                    st.session_state['last_input_method'] = input_method
 
-# IMAGE INPUT
-else:
-    uploaded = st.file_uploader("Upload image", type=['png', 'jpg', 'jpeg'])
-    if uploaded:
-        st.image(uploaded, caption="Uploaded Image", use_container_width=True)
-        if st.button("Analyze Monument"):
-            with st.spinner("Analyzing image..."):
-                img_bytes = uploaded.read()
-                _hash = hashlib.sha256(img_bytes).hexdigest()
-                st.session_state.monument_info = process_image(_hash, img_bytes)
+# Display results if available
+if st.session_state['monument_info']:
+    st.header("Monument Information (English)")
+    st.write(st.session_state['monument_info'])
 
-
-# OUTPUT INFO
-if st.session_state.monument_info:
-    st.header("Monument Information")
-    st.write(st.session_state.monument_info)
-
-    # English Audio
-    if st.button("Generate English Audio"):
+    # English narration
+    if st.button("Generate English Narration"):
         with st.spinner("Generating English audio..."):
-            text_hash = hashlib.sha256(st.session_state.monument_info.encode()).hexdigest()
-            st.session_state.audio_en = generate_speech(text_hash, st.session_state.monument_info, lang='en')
+            text_hash = hashlib.sha256(st.session_state['monument_info'].encode()).hexdigest()
+            audio_english = generate_speech(text_hash, st.session_state['monument_info'], lang='en')
+            if audio_english:
+                st.session_state['audio_english'] = audio_english
+            else:
+                st.error("English narration generation failed.")
 
-    if st.session_state.audio_en:
-        st.audio(st.session_state.audio_en, format="audio/mpeg")
+    if st.session_state['audio_english']:
+        st.header("English Audio")
+        st.audio(st.session_state['audio_english'], format="audio/mpeg")
 
-    # Translation
+    # Translation section
     if st.button("Translate to Kannada"):
-        with st.spinner("Translating..."):
-            st.session_state.translated_text = translate_to_kannada(st.session_state.monument_info)
+        with st.spinner("Translating to Kannada..."):
+            translated = translate_to_kannada(st.session_state['monument_info'])
+            st.session_state['translated_text'] = translated
 
-    if st.session_state.translated_text:
-        st.header("Kannada Translation")
-        st.write(st.session_state.translated_text)
+    if st.session_state['translated_text']:
+        st.header("Translated Text (Kannada)")
+        st.write(st.session_state['translated_text'])
 
-        # Kannada Audio
-        if st.button("Generate Kannada Audio"):
+        # Kannada narration
+        if st.button("Generate Kannada Narration"):
             with st.spinner("Generating Kannada audio..."):
-                text_hash = hashlib.sha256(st.session_state.translated_text.encode()).hexdigest()
-                st.session_state.audio_kn = generate_speech(text_hash, st.session_state.translated_text, lang='kn')
+                text_hash = hashlib.sha256(st.session_state['translated_text'].encode()).hexdigest()
+                audio_kannada = generate_speech(text_hash, st.session_state['translated_text'], lang='kn')
+                if audio_kannada:
+                    st.session_state['audio_kannada'] = audio_kannada
+                else:
+                    st.error("Kannada narration generation failed.")
 
-        if st.session_state.audio_kn:
-            st.audio(st.session_state.audio_kn, format="audio/mpeg")
+        if st.session_state['audio_kannada']:
+            st.header("Kannada Audio")
+            st.audio(st.session_state['audio_kannada'], format="audio/mpeg")
+
+if not st.session_state.get('monument_info') and not (input_method == "Enter Monument Name" and monument_name) and not (input_method == "Upload Monument Image" and uploaded_image):
+    st.info("Please select an input method and provide a monument name or image to get started.")
