@@ -1,3 +1,4 @@
+# app.py
 import streamlit as st
 import requests
 import os
@@ -159,258 +160,147 @@ def generate_speech(_text_hash, text, lang='kn'):
         logger.error("gTTS error for lang %s: %s", lang, e)
         return None
 
-# Enhanced Custom CSS to match the landing page theme more precisely
-st.markdown("""
+# ---------------------------
+# UI: Premium theme (replaces only the UI)
+# ---------------------------
+
+# Custom CSS (fresh premium design)
+st.markdown(
+    """
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Marcellus&display=swap" rel="stylesheet">
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Marcellus&display=swap');
-    
-    /* Global Styles */
+    :root{
+        --bg: #f3ebd8;
+        --paper: #ffffff;
+        --accent1: #a27800;
+        --accent2: #eecf82;
+        --muted: #5d4a2d;
+        --text: #3e3423;
+        --card-border: #d0b98a;
+        --glass: rgba(255,255,255,0.85);
+    }
+    /* Reset container spacing for wide layout */
+    .block-container{
+        padding-top: 28px;
+        padding-bottom: 40px;
+        max-width: 1150px;
+    }
+    /* Global background */
     .stApp {
-        background-color: #f3ebd8;
-        color: #3e3423;
+        background: radial-gradient(circle at 10% 10%, rgba(245,236,210,0.4), transparent 10%),
+                    linear-gradient(180deg, var(--bg), #f4ead0 60%);
+        color: var(--text);
         font-family: 'Marcellus', serif;
     }
-    
-    /* Main content wrapper for better spacing */
-    .main .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
+    /* Hero */
+    .hero-wrap {
+        text-align: center;
+        padding: 28px 12px 8px;
+        margin-bottom: 18px;
     }
-    
-    /* Hero Title */
     .hero-title {
         font-family: 'Cinzel', serif;
-        font-size: 3.8rem;
-        background: linear-gradient(90deg, #b18400, #f3d27c);
+        font-size: 3.6rem;
+        margin: 0;
+        background: linear-gradient(90deg, #b18400, var(--accent2));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        text-align: center;
-        margin-bottom: 0;
-        text-shadow: none;
+        letter-spacing: 0.6px;
     }
-    
-    .hero-subtitle {
-        font-size: 1.4rem;
-        color: #5d4a2d;
-        text-align: center;
-        margin-top: -10px;
-        margin-bottom: 20px;
-        font-family: 'Marcellus', serif;
+    .hero-sub {
+        font-size: 1.15rem;
+        color: var(--muted);
+        margin-top: 6px;
     }
-    
     .hero-quote {
         font-style: italic;
-        font-size: 1.2rem;
-        text-align: center;
-        color: #705c3b;
-        margin-bottom: 40px;
-        font-family: 'Marcellus', serif;
+        color: #6f5539;
+        margin-top: 8px;
     }
-    
-    /* Headers */
-    h1, h2, h3 {
-        font-family: 'Cinzel', serif;
-        color: #a27800;
-    }
-    
-    /* Enhanced Sections - Card-like with better styling */
+
+    /* Grid sections */
     .section {
-        background: #ffffff;
-        padding: 30px;
-        border-radius: 15px;
-        border: 2px solid #d0b98a;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
-        margin-bottom: 30px;
-        transition: 0.3s ease;
-        position: relative;
+        background: var(--paper);
+        padding: 22px;
+        border-radius: 14px;
+        border: 2px solid var(--card-border);
+        box-shadow: 0 8px 28px rgba(46,40,34,0.08);
+        transition: transform .22s ease, box-shadow .22s ease;
     }
-    
-    .section:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 28px rgba(0,0,0,0.25);
-    }
-    
-    .section h3 {
-        margin-top: 0;
-        color: #a27800;
-        font-size: 1.6rem;
-    }
-    
-    .section p {
-        color: #4d3e2a;
-        line-height: 1.6;
-    }
-    
-    /* Columns styling */
-    [data-testid="column"] {
-        padding: 10px;
-    }
-    
-    /* Radio buttons - Enhanced */
-    .stRadio > label {
-        font-family: 'Marcellus', serif;
-        color: #3e3423;
-        font-size: 1.1rem;
-    }
-    
-    .stRadio > div > div {
-        background-color: transparent;
-        border: none;
-        padding: 0;
-    }
-    
-    /* Hide default radio styling and use custom */
-    .stRadio > div {
-        background: transparent;
-        border: none;
-        border-radius: 0;
-        padding: 0;
-    }
-    
-    /* Buttons - Enhanced */
-    .stButton > button {
-        background: linear-gradient(90deg, #a27800, #eecf82);
+    .section:hover { transform: translateY(-6px); box-shadow: 0 20px 48px rgba(46,40,34,0.12); }
+    .section h3 { font-family: 'Cinzel', serif; color: var(--accent1); margin-bottom: 8px; }
+    .section p { color: var(--text); line-height: 1.65; }
+
+    /* Controls column */
+    .controls-col { padding: 8px; }
+    .result-col { padding: 8px; }
+
+    /* File uploader styling */
+    .stFileUploader>div { border-radius: 12px; padding: 6px; }
+    .stFileUploader label { font-family: 'Marcellus', serif; color: var(--text); }
+
+    /* Buttons */
+    .stButton>button {
+        background: linear-gradient(90deg, var(--accent1), var(--accent2));
         color: white;
-        font-weight: 600;
+        font-weight: 700;
         border-radius: 10px;
+        padding: 10px 18px;
         border: none;
-        padding: 12px 24px;
-        font-family: 'Marcellus', serif;
-        font-size: 1rem;
-        transition: 0.3s ease;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    
-    .stButton > button:hover {
-        background: linear-gradient(90deg, #eecf82, #a27800);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    
-    /* Text inputs - Enhanced */
-    .stTextInput > div > div > input {
-        background-color: #ffffff;
-        border: 2px solid #d0b98a;
-        border-radius: 10px;
-        color: #3e3423;
-        font-family: 'Marcellus', serif;
-        padding: 10px 15px;
-        font-size: 1rem;
-        transition: 0.3s ease;
-    }
-    
-    .stTextInput > div > div > input:focus {
-        border-color: #a27800;
-        box-shadow: 0 0 0 2px rgba(177, 132, 0, 0.2);
-    }
-    
-    /* File uploader - Enhanced */
-    .stFileUploader {
-        background-color: #ffffff;
-        border: 2px dashed #d0b98a;
-        border-radius: 15px;
-        padding: 20px;
-        text-align: center;
-    }
-    
-    .stFileUploader > div > div {
-        border: none;
-    }
-    
-    .stFileUploader label {
-        color: #4d3e2a;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
         font-family: 'Marcellus', serif;
     }
-    
-    /* Image display - Enhanced */
-    .stImage {
-        text-align: center;
+    .stButton>button:active { transform: translateY(1px); }
+
+    /* Text inputs */
+    .stTextInput>div>div>input {
+        border-radius: 10px; padding: 10px 14px; border: 2px solid var(--card-border);
+        font-family: 'Marcellus', serif; color: var(--text);
     }
-    
-    .stImage > img {
-        border-radius: 15px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.15);
-        max-width: 100%;
-        height: auto;
-    }
-    
-    /* Text display */
-    .stMarkdown {
-        font-family: 'Marcellus', serif;
-        color: #3e3423;
-        line-height: 1.6;
-    }
-    
-    /* Info/Warning/Error messages - Enhanced */
-    .stInfo, .stWarning, .stError {
-        background-color: #e8dbc0;
-        border: 2px solid #d0b98a;
-        border-radius: 15px;
-        color: #4b3a23;
-        font-family: 'Marcellus', serif;
-        padding: 15px;
-        margin: 20px 0;
-    }
-    
-    /* Spinner - Enhanced */
-    .stSpinner > div {
-        color: #a27800;
-        font-family: 'Marcellus', serif;
-    }
-    
-    /* Audio player - Enhanced */
-    .stAudio {
-        background-color: #ffffff;
-        border: 2px solid #d0b98a;
-        border-radius: 15px;
-        padding: 10px;
-    }
-    
-    .stAudio > div > audio {
-        width: 100%;
-        border-radius: 10px;
-    }
-    
-    /* Footer - Enhanced */
+
+    /* Cards inside */
+    .mini-card { background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95)); padding: 14px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.03); }
+    .mini-title { font-family: 'Cinzel', serif; color: var(--accent1); margin-bottom: 6px; }
+
+    /* Image display */
+    .stImage>img { border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+
+    /* Audio */
+    .stAudio { border-radius: 10px; padding: 6px; background: var(--glass); border: 1px solid var(--card-border); }
+
+    /* Result text formatting */
+    .result-text { white-space: pre-wrap; line-height: 1.7; color: var(--text); font-family: 'Marcellus', serif; }
+
+    /* Footer */
     .footer {
         text-align: center;
-        padding: 20px;
-        font-size: 0.9rem;
-        background-color: #e8dbc0;
-        color: #4b3a23;
-        margin-top: 40px;
-        border-radius: 15px;
-        font-family: 'Marcellus', serif;
-        border: 1px solid #d0b98a;
+        padding: 18px;
+        margin-top: 28px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(232,219,192,0.6), rgba(232,219,192,0.9));
+        border: 1px solid var(--card-border);
+        color: var(--muted);
     }
-    
-    /* Fade-in animation for sections */
-    .fade-in {
-        animation: fadeIn 0.8s forwards;
-        opacity: 0;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    /* Ensure columns have equal height if needed */
-    .css-1d391kg {
-        display: flex;
-        flex-direction: column;
+
+    /* Responsive tweaks */
+    @media (max-width: 880px) {
+        .hero-title { font-size: 2.6rem; }
     }
     </style>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
-# Hero section - Centered
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    st.markdown('<h1 class="hero-title">TimeLens</h1>', unsafe_allow_html=True)
-    st.markdown('<h2 class="hero-subtitle">Monument Recognition & Historical Narration</h2>', unsafe_allow_html=True)
-    st.markdown('<p class="hero-quote">“Where ancient worlds whisper — and AI listens.”</p>', unsafe_allow_html=True)
+# HERO
+st.markdown('<div class="hero-wrap">', unsafe_allow_html=True)
+st.markdown('<div style="max-width:980px;margin:0 auto;">', unsafe_allow_html=True)
+st.markdown('<h1 class="hero-title">TimeLens</h1>', unsafe_allow_html=True)
+st.markdown('<div class="hero-sub">Monument Recognition & Historical Narration — AI that listens to stones.</div>', unsafe_allow_html=True)
+st.markdown('<div class="hero-quote">“Where ancient worlds whisper — and AI listens.”</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
-# Initialize session state
+# Initialize session state (unchanged logic)
 if 'monument_info' not in st.session_state:
     st.session_state['monument_info'] = None
     st.session_state['translated_text'] = None
@@ -418,136 +308,149 @@ if 'monument_info' not in st.session_state:
     st.session_state['audio_english'] = None
     st.session_state['last_input_method'] = None
 
-# Input method selection - Improved layout with better columns
-st.markdown('<div style="margin-bottom: 30px;"></div>', unsafe_allow_html=True)  # Spacer
+# Top-level layout: left = inputs, right = results
+left_col, right_col = st.columns([1, 1.4], gap="large")
 
-col_left, col_right = st.columns([1, 2])
+# LEFT: Inputs
+with left_col:
+    st.markdown('<div class="section">', unsafe_allow_html=True)
+    st.markdown('<h3>Choose Input</h3>', unsafe_allow_html=True)
+    st.markdown('<p>Provide a monument name or upload an image to discover detailed historical narratives.</p>', unsafe_allow_html=True)
 
-with col_left:
-    st.markdown('<div class="section fade-in">', unsafe_allow_html=True)
-    st.markdown('<h3>Choose Your Path</h3><p>Select how you wish to explore the echoes of history.</p>', unsafe_allow_html=True)
     input_method = st.radio(
-        "Select how you want to provide monument information:",
+        "Input method",
         ("Enter Monument Name", "Upload Monument Image"),
         key="input_radio",
         horizontal=False
     )
-    st.markdown('</div>', unsafe_allow_html=True)
 
-with col_right:
-    st.markdown('<div class="section fade-in">', unsafe_allow_html=True)
-    st.markdown('<h3>Welcome to TimeLens</h3>', unsafe_allow_html=True)
-    st.markdown('<p>Embark on a journey through time. Enter a name or upload an image to uncover the stories etched in stone, narrated in English or Kannada.</p>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Reset when input method changes (keeps logic identical)
+    if st.session_state['last_input_method'] != input_method:
+        st.session_state['monument_info'] = None
+        st.session_state['translated_text'] = None
+        st.session_state['audio_kannada'] = None
+        st.session_state['audio_english'] = None
+        st.session_state['last_input_method'] = input_method
 
-# Clear previous output if input method changes
-if st.session_state['last_input_method'] != input_method:
-    st.session_state['monument_info'] = None
-    st.session_state['translated_text'] = None
-    st.session_state['audio_kannada'] = None
-    st.session_state['audio_english'] = None
-    st.session_state['last_input_method'] = input_method
+    if input_method == "Enter Monument Name":
+        st.markdown('<div style="margin-top:10px;" class="mini-card">', unsafe_allow_html=True)
+        monument_name = st.text_input("Monument name", key="monument_name_input", placeholder="e.g., Hampi Virupaksha Temple")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-# Main input sections
-if input_method == "Enter Monument Name":
-    st.markdown('<div class="section fade-in">', unsafe_allow_html=True)
-    st.markdown('<h3>By Name</h3><p>Invoke the monument by its ancient title.</p>', unsafe_allow_html=True)
-    monument_name = st.text_input("Enter the name of the monument", key="monument_name_input")
-    if monument_name:
         if st.button("Get Monument Information", key="get_name_info"):
-            with st.spinner("Fetching monument information..."):
-                monument_hash = hashlib.sha256(monument_name.encode()).hexdigest()
-                result = process_monument_name(monument_hash, monument_name)
-                st.session_state['monument_info'] = result
-                st.session_state['translated_text'] = None
-                st.session_state['audio_kannada'] = None
-                st.session_state['audio_english'] = None
-                st.session_state['last_input_method'] = input_method
-    st.markdown('</div>', unsafe_allow_html=True)
-elif input_method == "Upload Monument Image":
-    st.markdown('<div class="section fade-in">', unsafe_allow_html=True)
-    st.markdown('<h3>By Image</h3><p>Reveal the monument through a captured glimpse.</p>', unsafe_allow_html=True)
-    uploaded_image = st.file_uploader("Choose an image (PNG, JPG, JPEG)", type=['png', 'jpg', 'jpeg'], key="file_uploader")
-    if uploaded_image is not None:
-        if not allowed_file(uploaded_image.name):
-            st.error("Invalid file type. Only PNG, JPG, JPEG allowed.")
-        else:
-            st.image(uploaded_image, caption="Uploaded Image", use_container_width=True)
-            if st.button("Analyze Monument", key="analyze_image"):
-                with st.spinner("Analyzing image..."):
-                    image_bytes = uploaded_image.read()
-                    image_hash = hashlib.sha256(image_bytes).hexdigest()
-                    result = process_image(image_hash, image_bytes)
+            if monument_name and monument_name.strip():
+                with st.spinner("Contacting the archive..."):
+                    monument_hash = hashlib.sha256(monument_name.encode()).hexdigest()
+                    result = process_monument_name(monument_hash, monument_name)
                     st.session_state['monument_info'] = result
                     st.session_state['translated_text'] = None
                     st.session_state['audio_kannada'] = None
                     st.session_state['audio_english'] = None
                     st.session_state['last_input_method'] = input_method
-    st.markdown('</div>', unsafe_allow_html=True)
+            else:
+                st.warning("Please enter a monument name first.")
 
-# Display results if available - Wrapped in elegant sections
-if st.session_state['monument_info']:
-    st.markdown('<div class="section fade-in">', unsafe_allow_html=True)
-    st.markdown('<h3>Monument Information (English)</h3>', unsafe_allow_html=True)
-    st.markdown(f'<p>{st.session_state["monument_info"].replace("\n", "<br>")}</p>', unsafe_allow_html=True)
-    
-    col_btn1, col_btn2 = st.columns(2)
-    with col_btn1:
-        if st.button("Generate English Narration", key="gen_en"):
-            with st.spinner("Generating English audio..."):
-                text_hash = hashlib.sha256(st.session_state['monument_info'].encode()).hexdigest()
-                audio_english = generate_speech(text_hash, st.session_state['monument_info'], lang='en')
-                if audio_english:
-                    st.session_state['audio_english'] = audio_english
-                else:
-                    st.error("English narration generation failed.")
-    
-    if st.session_state['audio_english']:
-        st.markdown('<h4>English Narration</h4>', unsafe_allow_html=True)
-        st.audio(st.session_state['audio_english'], format="audio/mpeg")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Translation and Kannada section
-    col_trans, _ = st.columns([1, 3])
-    with col_trans:
-        if st.button("Translate to Kannada", key="translate"):
-            with st.spinner("Translating to Kannada..."):
-                translated = translate_to_kannada(st.session_state['monument_info'])
-                st.session_state['translated_text'] = translated
-    
-    if st.session_state['translated_text']:
-        st.markdown('<div class="section fade-in">', unsafe_allow_html=True)
-        st.markdown('<h3>Translated Text (Kannada)</h3>', unsafe_allow_html=True)
-        st.markdown(f'<p>{st.session_state["translated_text"].replace("\n", "<br>")}</p>', unsafe_allow_html=True)
-        
-        col_kan1, col_kan2 = st.columns(2)
-        with col_kan1:
-            if st.button("Generate Kannada Narration", key="gen_kn"):
-                with st.spinner("Generating Kannada audio..."):
-                    text_hash = hashlib.sha256(st.session_state['translated_text'].encode()).hexdigest()
-                    audio_kannada = generate_speech(text_hash, st.session_state['translated_text'], lang='kn')
-                    if audio_kannada:
-                        st.session_state['audio_kannada'] = audio_kannada
-                    else:
-                        st.error("Kannada narration generation failed.")
-        
-        if st.session_state['audio_kannada']:
-            st.markdown('<h4>Kannada Narration</h4>', unsafe_allow_html=True)
-            st.audio(st.session_state['audio_kannada'], format="audio/mpeg")
-        
+    else:
+        st.markdown('<div style="margin-top:10px;" class="mini-card">', unsafe_allow_html=True)
+        uploaded_image = st.file_uploader("Upload image (PNG/JPG/JPEG)", type=['png','jpg','jpeg'], key="file_uploader")
         st.markdown('</div>', unsafe_allow_html=True)
 
-# Conditional info message - Styled
-if not st.session_state.get('monument_info'):
-    if input_method == "Enter Monument Name" and 'monument_name' in locals() and monument_name:
-        pass  # User has entered name but not clicked button yet
-    elif input_method == "Upload Monument Image" and 'uploaded_image' in locals() and uploaded_image:
-        pass  # User has uploaded but not clicked analyze
-    else:
-        st.info("Please select an input method and provide a monument name or image to get started.")
+        if uploaded_image is not None:
+            if not allowed_file(uploaded_image.name):
+                st.error("Invalid file type. Allowed: PNG, JPG, JPEG.")
+            else:
+                st.image(uploaded_image, caption="Preview", use_column_width=True)
+                if st.button("Analyze Monument", key="analyze_image"):
+                    with st.spinner("Analyzing image..."):
+                        image_bytes = uploaded_image.read()
+                        image_hash = hashlib.sha256(image_bytes).hexdigest()
+                        result = process_image(image_hash, image_bytes)
+                        st.session_state['monument_info'] = result
+                        st.session_state['translated_text'] = None
+                        st.session_state['audio_kannada'] = None
+                        st.session_state['audio_english'] = None
+                        st.session_state['last_input_method'] = input_method
 
-# Footer - Centered
-col_f1, col_f2, col_f3 = st.columns([1, 2, 1])
-with col_f2:
-    st.markdown('<div class="footer">Built with ❤️ · TimeLens © 2025</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # A small about / quick links card
+    st.markdown('<div style="margin-top:18px;" class="section">', unsafe_allow_html=True)
+    st.markdown('<h3>Quick Links</h3>', unsafe_allow_html=True)
+    st.markdown('<p>Open other TimeLens tools and resources.</p>', unsafe_allow_html=True)
+    col_q1, col_q2 = st.columns([1,1])
+    with col_q1:
+        st.markdown('<a class="stButton" href="https://monument-recognition1.streamlit.app/" target="_blank"><button style="width:100%;">Open Recognition</button></a>', unsafe_allow_html=True)
+    with col_q2:
+        st.markdown('<a class="stButton" href="https://huggingface.co/spaces/premjavali05/Sanskrit_Manuscripts" target="_blank"><button style="width:100%;">Open Manuscripts</button></a>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# RIGHT: Results & translation & audio (preserves all workflows)
+with right_col:
+    st.markdown('<div class="section">', unsafe_allow_html=True)
+    st.markdown('<h3>Results</h3>', unsafe_allow_html=True)
+    if st.session_state['monument_info']:
+        st.markdown('<div class="mini-card">', unsafe_allow_html=True)
+        st.markdown('<div class="mini-title">Monument Information — English</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="result-text">{st.session_state["monument_info"]}</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Buttons row: generate audio / translate
+        btn_col1, btn_col2, btn_col3 = st.columns([1,1,1])
+        with btn_col1:
+            if st.button("Generate English Narration", key="gen_en"):
+                with st.spinner("Generating English audio..."):
+                    text_hash = hashlib.sha256(st.session_state['monument_info'].encode()).hexdigest()
+                    audio_english = generate_speech(text_hash, st.session_state['monument_info'], lang='en')
+                    if audio_english:
+                        st.session_state['audio_english'] = audio_english
+                    else:
+                        st.error("English narration generation failed.")
+        with btn_col2:
+            if st.button("Translate to Kannada", key="translate"):
+                with st.spinner("Translating to Kannada..."):
+                    translated = translate_to_kannada(st.session_state['monument_info'])
+                    st.session_state['translated_text'] = translated
+        with btn_col3:
+            if st.button("Copy Text", key="copy_text"):
+                # Copy to clipboard via JS (best-effort; some hosts disable)
+                js = f"navigator.clipboard && navigator.clipboard.writeText({repr(st.session_state['monument_info'])})"
+                st.components.v1.html(f"<script>{js}</script>", height=10)
+
+        # Audio player for English if available
+        if st.session_state.get('audio_english'):
+            st.markdown('<div style="margin-top:10px;">', unsafe_allow_html=True)
+            st.markdown('<div class="mini-title">English Narration</div>', unsafe_allow_html=True)
+            st.audio(st.session_state['audio_english'], format="audio/mpeg")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # Show translated Kannada text and audio generation
+        if st.session_state.get('translated_text'):
+            st.markdown('<div style="margin-top:14px;" class="mini-card">', unsafe_allow_html=True)
+            st.markdown('<div class="mini-title">Translated Text — Kannada</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-text">{st.session_state["translated_text"]}</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            kn_col1, kn_col2 = st.columns([1,1])
+            with kn_col1:
+                if st.button("Generate Kannada Narration", key="gen_kn"):
+                    with st.spinner("Generating Kannada audio..."):
+                        text_hash = hashlib.sha256(st.session_state['translated_text'].encode()).hexdigest()
+                        audio_kannada = generate_speech(text_hash, st.session_state['translated_text'], lang='kn')
+                        if audio_kannada:
+                            st.session_state['audio_kannada'] = audio_kannada
+                        else:
+                            st.error("Kannada narration generation failed.")
+            with kn_col2:
+                if st.session_state.get('audio_kannada'):
+                    st.markdown('<div style="margin-top:8px;">', unsafe_allow_html=True)
+                    st.markdown('<div class="mini-title">Kannada Narration</div>', unsafe_allow_html=True)
+                    st.audio(st.session_state['audio_kannada'], format="audio/mpeg")
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+    else:
+        st.info("No result yet. Enter a monument name or upload an image and click the appropriate button to start.")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# Footer
+st.markdown('<div class="footer">Built with ❤️ · TimeLens © 2025</div>', unsafe_allow_html=True)
